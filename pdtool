@@ -1,0 +1,64 @@
+action_name=$1
+vm_name=$2
+vm_home=("/Users/nullpoint/Parallels") # 虚拟机目录数组,可以设置多个
+valid_year="2021" # pd试用前或试用期间都行
+pd_app="/Applications/Parallels Desktop.app" # pd 启动程序
+pd_main_process="/Applications/Parallels Desktop.app/Contents/MacOS/prl_client_app" # pd 主进程
+action_array=("run" "suspend" "ls") # 运行 | 挂起 | 查看虚拟机名称
+
+vm_run_func() {
+	# 关闭网络时间 & 修改时间为过去的某个时间
+	sudo systemsetup -setusingnetworktime Off && sudo systemsetup -setdate 12:12:$valid_year
+
+	# 运行 pd 主程序
+	pd_run_pid=`ps -ef | grep "$pd_main_process" | grep -v grep|awk '{print $2}'`
+	echo "$pd_run_pid"
+	if [[ -z "$pd_run_pid" ]]; then
+		open -a "$pd_app"
+	fi
+
+	# 运行 指定虚拟机
+	prlctl start $vm_name
+
+	# 恢复网络时间
+	sudo systemsetup -setusingnetworktime On
+}
+
+pd_run_func() {
+	if [[ -n "$vm_name" ]]; then
+		echo "[pd run] vm name : $vm_name" 
+
+		# 运行
+		vm_run_func
+	else 
+		echo "[pd run] missing vm name, example: run vm_name"
+	fi
+}
+
+pd_suspend_func() {
+	if [[ -n "$vm_name" ]]; then
+		echo "[pd suspend] vm name : $vm_name" 
+
+		# 挂起
+		prlctl suspend $vm_name
+	else 
+		echo "[pd suspend] missing vm name, example: run vm_name"
+	fi
+}
+
+pd_ls_func() {
+	# 输出
+	ls ${vm_home[*]} | sed 's/.pvm/''/'
+}
+
+case $action_name in
+	"run" ) pd_run_func;
+		;;
+	"suspend") pd_suspend_func;
+		;;
+	"ls" ) pd_ls_func;
+		;;
+	* ) echo "[pd action] action missing, example: ${action_array[*]}"
+		;;
+esac
+
